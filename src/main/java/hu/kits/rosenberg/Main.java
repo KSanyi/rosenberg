@@ -20,9 +20,9 @@ public class Main {
         logger.info("Starting application");
         
         int port = getPort();
-        URI dbUri = getDatabaseUri();
+        //URI dbUri = getDatabaseUri();
         
-        DataSource dataSource = createDataSource(dbUri);
+        //DataSource dataSource = createDataSource(dbUri);
         
         new HttpServer(port).start();
     }

@@ -6,10 +6,14 @@ import hu.kits.rosenberg.Dictionary.DictionaryEntry;
 
 public record SearchResult(
         String queryString,
-        List<DictionaryEntry> matchingEntries) {
+        List<DictionarySearchResult> dictionarySearchResults) {
 
     public static SearchResult empty(String queryString) {
         return new SearchResult(queryString, List.of());
+    }
+    
+    public record DictionarySearchResult(String dictionaryCode, List<DictionaryEntry> matchingEntries) {
+        
     }
 
 }

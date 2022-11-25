@@ -17,12 +17,8 @@ public class Dictionary {
         }
     }
 
-    public SearchResult search(String queryString) {
-
-        if(queryString.length() < 3) return SearchResult.empty(queryString);
-        
-        List<DictionaryEntry> foundEntries = entries.stream().filter(e -> e.matches(queryString)).toList();
-        return new SearchResult(queryString, foundEntries);
+    public List<DictionaryEntry> search(String queryString) {
+        return entries.stream().filter(e -> e.matches(queryString)).toList();
     }
     
 }

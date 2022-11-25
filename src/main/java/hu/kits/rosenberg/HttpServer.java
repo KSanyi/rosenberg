@@ -7,6 +7,7 @@ import static io.javalin.apibuilder.ApiBuilder.post;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +55,7 @@ public class HttpServer {
         UploadedFile uploadedFile = context.uploadedFile("file");
         try(InputStream inputStream = uploadedFile.content()) {
             Dictionary dictionary = DictionaryParser.parseDictionary(inputStream);
-            Dictionaries.setDictionary(dictionary);
+            Dictionaries.setDictionary(UUID.randomUUID().toString().substring(0,5), dictionary);
         } catch(DictionaryParseException ex) {
             logger.error("Could not parse file {}: {}", uploadedFile.filename(), ex.getMessage());
         } catch(IOException ex) {
