@@ -1,21 +1,19 @@
 package hu.kits.rosenberg;
 
+import static io.javalin.apibuilder.ApiBuilder.delete;
 import static io.javalin.apibuilder.ApiBuilder.get;
 import static io.javalin.apibuilder.ApiBuilder.path;
 import static io.javalin.apibuilder.ApiBuilder.post;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.lang.invoke.MethodHandles;
-import java.util.UUID;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import hu.kits.rosenberg.DictionaryParser.DictionaryParseException;
+import hu.kits.rosenberg.Dictionary.DictionaryData;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
-import io.javalin.http.UploadedFile;
 import io.javalin.http.staticfiles.Location;
 
 public class HttpServer {
@@ -26,7 +24,11 @@ public class HttpServer {
     
     private final int port;
     
-    public HttpServer(int port) {
+    private final DictionaryService dictionaryService;
+    
+    public HttpServer(int port, DictionaryService dictionaryService) {
+        
+        this.dictionaryService = dictionaryService;
         
         app = Javalin.create(config -> {
             config.requestLogger.http(this::log);
@@ -38,8 +40,14 @@ public class HttpServer {
               config.http.maxRequestSize = 60000000;
               config.jsonMapper(new RosenbergJsonMapper());
         }).routes(() -> {
-            path("api/upload", () -> {
+            path("api/dictionary", () -> {
+                get(this::listDictionaries);
+            });
+            path("api/dictionary/upload", () -> {
                 post(this::uploadDictionary);
+            });
+            path("api/dictionary/{id}", () -> {
+                delete(this::deleteDictionary);
             });
             path("api/search", () -> {
                 get(this::search);
@@ -50,26 +58,26 @@ public class HttpServer {
         this.port = port;
     }
     
+    private void listDictionaries(Context context) {
+        List<DictionaryData> dictionaryDataList = dictionaryService.getDictionaries();
+        context.json(dictionaryDataList);
+        context.header("Content-Type", "text/json; charset=utf-8");
+    }
+    
     private void uploadDictionary(Context context) {
-        
-        UploadedFile uploadedFile = context.uploadedFile("file");
-        try(InputStream inputStream = uploadedFile.content()) {
-            Dictionary dictionary = DictionaryParser.parseDictionary(inputStream);
-            Dictionaries.setDictionary(UUID.randomUUID().toString().substring(0,5), dictionary);
-        } catch(DictionaryParseException ex) {
-            logger.error("Could not parse file {}: {}", uploadedFile.filename(), ex.getMessage());
-        } catch(IOException ex) {
-            logger.error("Error rading file {}", uploadedFile.filename(), ex);
-        }
+        dictionaryService.uploadDictionary(context.uploadedFile("file"));
+    }
+    
+    private void deleteDictionary(Context context) {
+        dictionaryService.deleteDictionary(context.pathParam("id"));
     }
     
     private void search(Context context) {
         String word = context.queryParam("word");
         logger.info("Searched for {}", word);
-        SearchResult result = Dictionaries.search(word);
-        //context.result(result);
+        SearchResult result = dictionaryService.search(word);
         context.json(result);
-        context.header("Content-Type", "text/plain; charset=utf-8");
+        context.header("Content-Type", "text/json; charset=utf-8");
     }
     
     public void start() {

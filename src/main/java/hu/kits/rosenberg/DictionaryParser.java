@@ -1,5 +1,6 @@
 package hu.kits.rosenberg;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +16,30 @@ import hu.kits.rosenberg.Dictionary.DictionaryEntry;
 
 public class DictionaryParser {
 
-    public static Dictionary parseDictionary(InputStream inputStream) {
+    public static String parseDictionaryId(ByteArrayInputStream inputStream) {
+        XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
+        try {
+            XMLEventReader reader = xmlInputFactory.createXMLEventReader(inputStream);
+            XMLEvent event;
+            event = reader.nextTag();
+            verifyStartTag(event, "root");
+            
+            while (reader.hasNext()) {
+                event = reader.nextTag();
+                if(isEndTag(event, "root")) {
+                    break;
+                }
+                verifyStartTag(event, "Lemma");
+                
+                return readElementContent(reader, "Lemma.DicType");
+            }
+            throw new DictionaryParseException("Can not parse dictionary id (Lemma.DicType)");
+        } catch (XMLStreamException ex) {
+            throw new DictionaryParseException("Error parsing dictionary", ex);
+        }
+    }
+    
+    public static List<DictionaryEntry> parseDictionaryEntries(InputStream inputStream) {
         
         List<DictionaryEntry> entries = new ArrayList<>();
         
@@ -49,16 +73,12 @@ public class DictionaryParser {
                 
                 entries.add(new DictionaryEntry(pocket, descriptionBuilder.toString()));
             }
-            return new Dictionary(entries);
+            return entries;
         } catch (XMLStreamException ex) {
             throw new DictionaryParseException("Error parsing dictionary", ex);
         }
     }
 
-    private static boolean isStartTag(XMLEvent event, String tagName) {
-        return event.isStartElement() && event.asStartElement().getName().getLocalPart().equals(tagName);
-    }
-    
     private static boolean isEndTag(XMLEvent event, String tagName) {
         return event.isEndElement() && event.asEndElement().getName().getLocalPart().equals(tagName);
     }
@@ -114,5 +134,5 @@ public class DictionaryParser {
         event = reader.nextEvent();
         return content;
     }
-    
+
 }

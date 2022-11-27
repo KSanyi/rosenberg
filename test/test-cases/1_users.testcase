@@ -1,0 +1,10 @@
+Call 1
+description: Queries for the word 'alma'
+url: <url-base>/api/search?word=alma
+method: GET
+response-status: 200
+response-body:
+{
+  "entries": [],
+  "queryString": "alma"
+}

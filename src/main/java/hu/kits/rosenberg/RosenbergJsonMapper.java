@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import hu.kits.rosenberg.Dictionary.DictionaryData;
 import hu.kits.rosenberg.Dictionary.DictionaryEntry;
 import hu.kits.rosenberg.SearchResult.DictionarySearchResult;
 import io.javalin.json.JsonMapper;
@@ -41,6 +42,8 @@ public class RosenbergJsonMapper implements JsonMapper {
             return mapToJson((DictionarySearchResult)data);
         } else if(data instanceof DictionaryEntry) {
             return mapToJson((DictionaryEntry)data);
+        } else if(data instanceof DictionaryData) {
+            return mapToJson((DictionaryData)data);
         } else {
             return data;
         }
@@ -62,6 +65,14 @@ public class RosenbergJsonMapper implements JsonMapper {
         return new JSONObject()
                 .put("word", dictionaryEntry.word())
                 .put("description", dictionaryEntry.description());
+    }
+    
+    private static JSONObject mapToJson(DictionaryData dictionaryData) {
+        return new JSONObject()
+                .put("id", dictionaryData.id())
+                .put("fileName", dictionaryData.fileName())
+                .put("uploaded", dictionaryData.uploaded())
+                .put("numbrOfEntries", dictionaryData.numbrOfEntries());
     }
     
 }

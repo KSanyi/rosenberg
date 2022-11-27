@@ -20,13 +20,18 @@ public class Main {
         logger.info("Starting application");
         
         int port = getPort();
-        //URI dbUri = getDatabaseUri();
+        URI dbUri = getDatabaseUri();
+        DataSource dataSource = createDataSource(dbUri);
         
-        //DataSource dataSource = createDataSource(dbUri);
-        
-        new HttpServer(port).start();
+        DictionaryService dictionaryService = createDictionaryService(dataSource);
+        new HttpServer(port, dictionaryService).start();
     }
     
+    private static DictionaryService createDictionaryService(DataSource dataSource) {
+        DictionaryJdbcRepository dictionaryJdbcRepository = new DictionaryJdbcRepository(dataSource);
+        return new DictionaryService(dictionaryJdbcRepository);
+    }
+
     private static int getPort() {
         String port = loadMandatoryEnvVariable("PORT");
 
