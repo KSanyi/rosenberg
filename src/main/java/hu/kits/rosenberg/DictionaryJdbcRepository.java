@@ -5,7 +5,6 @@ import static java.util.stream.Collectors.toMap;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.function.Function;
 
@@ -66,7 +65,7 @@ public class DictionaryJdbcRepository {
         jdbi.withHandle(handle -> handle.createUpdate(sql)
                 .bind(0, id)
                 .bind(1, fileName)
-                .bind(2, LocalDateTime.now())
+                .bind(2, Clock.now())
                 .bind(3, content).execute());
         
         return loadDictionary(id);

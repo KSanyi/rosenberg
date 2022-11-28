@@ -1,9 +1,9 @@
 package hu.kits.rosenberg;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import hu.kits.rosenberg.Dictionary.DictionaryData;
 import hu.kits.rosenberg.Dictionary.DictionaryEntry;
@@ -14,7 +14,7 @@ public class Dictionaries {
     private final Map<String, Dictionary> dictionaries;
     
     public Dictionaries(Map<String, Dictionary> dictionaries) {
-        this.dictionaries = new HashMap<>(dictionaries);
+        this.dictionaries = new TreeMap<>(dictionaries);
     }
     
     public void setDictionary(String name, Dictionary dictionary) {

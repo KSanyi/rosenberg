@@ -1,10 +1,13 @@
 package hu.kits.rosenberg;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 
 import javax.sql.DataSource;
 
@@ -23,6 +26,26 @@ public class End2EndTest {
 
     private HttpServer httpServer;
     
+    private final String dictionary1Content = """
+        <root>
+            <Lemma>
+                <Lemma.DicType>BM01</Lemma.DicType>
+                <Lemma.LemmaPocket>akasztesté</Lemma.LemmaPocket>
+                <info>info about akasztesté</info>
+            </Lemma>
+        </root>
+        """;
+    
+    private String dictionary2Content = """
+        <root>
+            <Lemma>
+                <Lemma.DicType>BM02</Lemma.DicType>
+                <Lemma.LemmaPocket>akasztesté</Lemma.LemmaPocket>
+                <info>other info about akasztesté</info>
+            </Lemma>
+        </root>
+        """;
+    
     @BeforeEach
     private void init() throws Exception {
         port = findFreePort();
@@ -31,41 +54,85 @@ public class End2EndTest {
     }
     
     @Test
-    public void testWithNoDictionary() {
+    public void upload2Dictionaries() throws IOException {
         
-        HttpResponse<String> response = Unirest.get("http://localhost:" + port + "/api/search?word='alma'").asString();
-        Assertions.assertEquals("OK", response.getStatusText());
+        Clock.setStaticTime(LocalDateTime.of(2022,9,26, 19,0));
+        uploadDictionary("dir01.xml", dictionary1Content);
+        
+        Clock.setStaticTime(LocalDateTime.of(2022,9,27, 19,0));
+        uploadDictionary("dir02.xml", dictionary2Content);
+        
+        String responseJon = getDictionaries();
         
         String expected = """
-                {
-                  "entries": [],
-                  "queryString": "'alma'"
-                }""";
-        Assertions.assertEquals(expected, format(response.getBody()));
+                [
+                  {
+                    "fileName": "dir01.xml",
+                    "numbrOfEntries": 1,
+                    "uploaded": "2022-09-26T19:00",
+                    "id": "BM01"
+                  },
+                  {
+                    "fileName": "dir02.xml",
+                    "numbrOfEntries": 1,
+                    "uploaded": "2022-09-27T19:00",
+                    "id": "BM02"
+                  }
+                ]""";
+        
+        assertEquals(expected, responseJon);
     }
     
     @Test
-    public void test() throws IOException {
+    public void updateDictionary() throws IOException {
         
-        String content = """
+        Clock.setStaticTime(LocalDateTime.of(2022,9,26, 19,0));
+        uploadDictionary("dir01.xml", dictionary1Content);
+        
+        String updatedDictionary2Content = """
                 <root>
                     <Lemma>
                         <Lemma.DicType>BM01</Lemma.DicType>
                         <Lemma.LemmaPocket>akasztesté</Lemma.LemmaPocket>
-                        <info>info about akasztesté</info>
+                        <info>other info about akasztesté</info>
                     </Lemma>
                 </root>
                 """;
+        Clock.setStaticTime(LocalDateTime.of(2022,9,27, 19,0));
+        uploadDictionary("dir01_update.xml", updatedDictionary2Content);
         
-        File file = createDictionaryFile(content);
+        String responseJon = getDictionaries();
         
-        HttpResponse<String> response = Unirest.post("http://localhost:" + port + "/api/upload")
-                .field("file", file)
-                .asString();
-        Assertions.assertEquals("OK", response.getStatusText());
+        String expected ="""
+                [{
+                  "fileName": "dir01_update.xml",
+                  "numbrOfEntries": 1,
+                  "uploaded": "2022-09-27T19:00",
+                  "id": "BM01"
+                }]""";
         
-        response = Unirest.get("http://localhost:" + port + "/api/search?word=akaszt").asString();
-        Assertions.assertEquals("OK", response.getStatusText());
+        assertEquals(expected, responseJon);
+    }
+    
+    @Test
+    public void searchWithNoDictionary() throws IOException {
+        
+        String resultJson = searchForWord("alma");
+        
+        String expected = """
+                {
+                  "entries": [],
+                  "queryString": "alma"
+                }""";
+        assertEquals(expected, resultJson);
+    }
+    
+    @Test
+    public void searchWithOneResult() throws IOException {
+        
+        uploadDictionary("dir01.xml", dictionary1Content);
+        
+        String result = searchForWord("akaszt");
         
         String expected = """
                 {
@@ -78,13 +145,37 @@ public class End2EndTest {
                   }],
                   "queryString": "akaszt"
                 }""";
-        Assertions.assertEquals(expected, format(response.getBody()));
+        assertEquals(expected, result);
     }
     
-    private static File createDictionaryFile(String content) throws IOException {
-        Path path = Files.createTempFile("test", ".dictionary");
-        Files.write(path, content.getBytes());
-        return path.toFile();
+    private void uploadDictionary(String filName, String content) throws IOException {
+        File file = createDictionaryFile(filName, content);
+        
+        HttpResponse<String> response = Unirest.post("http://localhost:" + port + "/api/dictionary/upload")
+                .field("file", file)
+                .asString();
+        assertEquals("OK", response.getStatusText());
+    }
+    
+    private static File createDictionaryFile(String filName, String content) throws IOException {
+        Path dirPath = Files.createTempDirectory("dictionary_test");
+        Path filPath = Files.createFile(dirPath.resolve(filName));
+        Files.write(filPath, content.getBytes());
+        return filPath.toFile();
+    }
+    
+    private String searchForWord(String wordPart) throws IOException {
+        HttpResponse<String> response = Unirest.get("http://localhost:" + port + "/api/search?word=" + wordPart).asString();
+        Assertions.assertEquals("OK", response.getStatusText());
+        
+        return format(response.getBody());
+    }
+    
+    private String getDictionaries() throws IOException {
+        HttpResponse<String> response = Unirest.get("http://localhost:" + port + "/api/dictionary").asString();
+        Assertions.assertEquals("OK", response.getStatusText());
+        
+        return format(response.getBody());
     }
     
     private static DictionaryService createDictionaryService() throws Exception {
