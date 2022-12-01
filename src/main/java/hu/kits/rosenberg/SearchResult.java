@@ -1,6 +1,9 @@
 package hu.kits.rosenberg;
 
+import static java.util.stream.Collectors.toMap;
+
 import java.util.List;
+import java.util.Map;
 
 import hu.kits.rosenberg.Dictionary.DictionaryEntry;
 
@@ -13,7 +16,12 @@ public record SearchResult(
     }
     
     public record DictionarySearchResult(String dictionaryCode, List<DictionaryEntry> matchingEntries) {
+    }
+    
+    public Map<String, Integer> numberOfMatches() {
         
+        return dictionarySearchResults.stream()
+                .collect(toMap(d -> d.dictionaryCode, d -> d.matchingEntries.size()));
     }
 
 }

@@ -76,6 +76,7 @@ public class HttpServer {
         String word = context.queryParam("word");
         logger.info("Searched for {}", word);
         SearchResult result = dictionaryService.search(word);
+        logger.info("Number of matches: {}", result.numberOfMatches());
         context.json(result);
         context.header("Content-Type", "text/json; charset=utf-8");
     }
